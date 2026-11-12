@@ -97,10 +97,11 @@ class Memory:
     def intake(self, proposal: dict) -> dict:
         validate_proposal(proposal)
         state = self.read()
-        if any(item.get("proposal_id") == proposal["proposal_id"] for item in state):
+        normalized_id = str(UUID(proposal["proposal_id"]))
+        if any(item.get("proposal_id") and str(UUID(item["proposal_id"])) == normalized_id for item in state):
             raise ValueError("Duplicate proposal")
         record = {"id": str(uuid4()), "category": "peer_proposal",
-                  "proposal_id": proposal["proposal_id"], "content": proposal,
+                  "proposal_id": normalized_id, "content": proposal,
                   "status": "untrusted_pending_review",
                   "created_at": datetime.now(timezone.utc).isoformat()}
         state.append(record)
