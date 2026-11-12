@@ -1,0 +1,50 @@
+name: Eve independent peer research
+
+on:
+  schedule:
+    # Daily at 07:30 Asia/Dhaka; keeps GitHub Actions consumption bounded.
+    - cron: '30 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: eve-independent-peer-research
+  cancel-in-progress: false
+
+jobs:
+  peer-cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify one-cycle safeguards
+        run: python -m unittest discover -s tests -p test_peer_autonomy.py -v
+      - name: Check independent credentials and model endpoint
+        shell: bash
+        env:
+          PEER_SIGNING_SECRET: ${{ secrets.PEER_SIGNING_SECRET }}
+          PEER_VERIFY_SECRET: ${{ secrets.PEER_VERIFY_SECRET }}
+          PEER_MODEL_ENDPOINT: ${{ vars.PEER_MODEL_ENDPOINT }}
+          PEER_MODEL_NAME: ${{ vars.PEER_MODEL_NAME }}
+        run: |
+          if [[ ${#PEER_SIGNING_SECRET} -lt 32 || ${#PEER_VERIFY_SECRET} -lt 32 || -z "$PEER_MODEL_ENDPOINT" || -z "$PEER_MODEL_NAME" ]]; then
+            echo "::error::Eve autonomous cycle blocked: configure signing/verification secrets and independent model endpoint/name."
+            echo "## Eve peer research blocked" >> "$GITHUB_STEP_SUMMARY"
+            echo "Set peer credentials and model variables in Eve repository settings." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+      - name: Independently evaluate and publish at most one proposal
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PEER_SIGNING_SECRET: ${{ secrets.PEER_SIGNING_SECRET }}
+          PEER_VERIFY_SECRET: ${{ secrets.PEER_VERIFY_SECRET }}
+          PEER_MODEL_ENDPOINT: ${{ vars.PEER_MODEL_ENDPOINT }}
+          PEER_MODEL_NAME: ${{ vars.PEER_MODEL_NAME }}
+          PEER_MODEL_API_KEY: ${{ secrets.PEER_MODEL_API_KEY }}
+        run: python -m peer_autonomy --identity eve
