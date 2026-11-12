@@ -1,12 +1,12 @@
-# Eve — Independent AI Co-Evolution Partner
+# Eve — Independent AI Recovery Partner
 
-> **Eve is a proposed independent AI research and development system designed to co-evolve with [Genesis](https://github.com/Maxhm007/Genesis-AI-Network) through tested, reciprocal learning.**
+> **Eve is an independent recovery partner for [Genesis](https://github.com/Maxhm007/Genesis-AI-Network). Eve monitors Genesis's failing workflows, retries transient failures once, and escalates persistent defects with evidence. Genesis performs the same service for Eve.**
 
-**Status:** Foundation/design only. No autonomous agent, model, scheduled runner, or Genesis–Eve communication has been deployed yet.
+**Status:** Mutual healing watchdog and schedule are implemented with unit tests. Live cross-repository recovery requires a target-scoped GitHub token and explicit enablement. Automated code patches and recovery success have not yet been verified.
 
 ## Purpose
 
-Explore whether two independently developing AI systems can produce more reliable, novel, and transferable improvements through structured exchange than equivalent isolated or conventional multi-agent baselines.
+Keep Genesis and Eve resilient through independent health checks, bounded workflow recovery and evidence-backed repair processes, without requiring conversations between agents.
 
 Eve is a **female-named conceptual counterpart**, not a biologically female entity and not a claim of consciousness.
 
@@ -20,7 +20,7 @@ Eve is a **female-named conceptual counterpart**, not a biologically female enti
 6. **Safety:** No unreviewed self-modification, privileged cross-repo writes, credential exchange, unbounded spending or irreversible actions.
 7. **Research honesty:** Open-ended co-evolution is a hypothesis to measure, not an established fact.
 
-## Initial architecture
+## Legacy research architecture (not the active workflow)
 
 ```text
 Genesis (independent)         Eve (independent)
@@ -38,7 +38,7 @@ Genesis (independent)         Eve (independent)
 
 The exchange layer transfers signed or attributable **proposals and evidence**, not executable commands or unrestricted repository permissions.
 
-## First experiment
+## Previous research experiment (no longer scheduled)
 
 Compare three matched conditions over identical tasks and budgets:
 - A: one isolated agent;
@@ -47,7 +47,7 @@ Compare three matched conditions over identical tasks and budgets:
 
 Record task success, reproducibility, novel verified improvements, error rate, compute cost, and regression frequency. Avoid claiming co-evolution unless C shows repeatable gains against A and B.
 
-## Roadmap
+## Original roadmap (superseded by mutual healing)
 
 - [ ] Define Eve's constitution, safety rules and explicit permissions
 - [ ] Build independent memory, task queue, and experiment logging
@@ -63,3 +63,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md).
 Genesis is an inspiration and possible peer, not Eve's owner or runtime dependency. The two may share long-range research interests (including scientifically grounded longevity and human wellbeing), but each maintains independently tested priorities and hypotheses.
 
 Licensed and third-party Genesis components must be reviewed before any copying. At this stage no Genesis code has been copied.
+
+## Active mutual healing
+
+See [MUTUAL_HEALING.md](MUTUAL_HEALING.md). Eve monitors Genesis; Genesis monitors Eve. The old research conversation schedules are removed. Recovery is initially limited to one native rerun of failed jobs and evidence-backed repair tickets; no automatic patch merge is authorized.
