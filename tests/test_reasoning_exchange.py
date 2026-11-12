@@ -7,7 +7,7 @@ from pathlib import Path
 
 from eve.core import Memory, make_proposal
 from eve.exchange import sign, verify
-from eve.reasoning import Reasoner
+from eve.reasoning import Reasoner, _NoRedirect
 
 SECRET = "sample-only-test-secret-do-not-use-production-1234"
 
@@ -30,6 +30,10 @@ class NewFeaturesTest(unittest.TestCase):
                           model="test-model", transport=fake)
         self.assertEqual(client.ask("Consider experiment"), "Testable.")
         self.assertEqual(captured["body"]["model"], "test-model")
+
+    def test_model_redirect_blocked(self):
+        with self.assertRaises(ValueError):
+            _NoRedirect().redirect_request(None, None, 302, "Redirect", {}, "https://untrusted.example/")
 
     def test_remote_http_rejected(self):
         with self.assertRaises(ValueError):
