@@ -5,12 +5,21 @@ import urllib.request
 from urllib.parse import urlparse
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise ValueError('Model endpoint redirects are forbidden')
+
+
+def _safe_open(request, timeout=30):
+    return urllib.request.build_opener(_NoRedirect()).open(request, timeout=timeout)
+
+
 class Reasoner:
     def __init__(self, endpoint=None, model=None, api_key=None, transport=None):
         self.endpoint = endpoint or os.getenv("EVE_MODEL_ENDPOINT", "")
         self.model = model or os.getenv("EVE_MODEL_NAME", "")
         self.api_key = api_key if api_key is not None else os.getenv("EVE_MODEL_API_KEY", "")
-        self.transport = transport or urllib.request.urlopen
+        self.transport = transport or _safe_open
         parsed = urlparse(self.endpoint)
         if (parsed.scheme != "https" and not (parsed.scheme == "http" and
             parsed.hostname in {"localhost", "127.0.0.1", "::1"})) or not parsed.hostname or parsed.username or parsed.password:
