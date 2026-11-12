@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   peer-cycle:
+    if: vars.PEER_MODEL_ENDPOINT != '' && vars.PEER_MODEL_NAME != ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
