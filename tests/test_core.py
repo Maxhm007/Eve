@@ -1,4 +1,5 @@
 import json
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -28,6 +29,21 @@ class EveTest(unittest.TestCase):
         p["expected_benefit"] = "modified"
         with self.assertRaisesRegex(ValueError, "hash"):
             validate_proposal(p)
+
+    def test_duplicate_id_alternate_uuid_spelling_rejected(self):
+        with tempfile.TemporaryDirectory() as root:
+            memory = Memory(root)
+            p = make_proposal("genesis", "eve", "test", "A", "B")
+            memory.intake(p)
+            changed = dict(p)
+            changed["proposal_id"] = p["proposal_id"].replace("-", "").upper()
+            payload = dict(changed)
+            del payload["content_hash"]
+            changed["content_hash"] = "sha256:" + hashlib.sha256(
+                json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+            ).hexdigest()
+            with self.assertRaisesRegex(ValueError, "Duplicate"):
+                memory.intake(changed)
 
     def test_wrong_recipient_rejected(self):
         p = make_proposal("eve", "genesis", "test", "task", "result")
