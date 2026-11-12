@@ -16,8 +16,8 @@ def _safe_open(request, timeout=30):
 
 class Reasoner:
     def __init__(self, endpoint=None, model=None, api_key=None, transport=None):
-        self.endpoint = endpoint or os.getenv("EVE_MODEL_ENDPOINT", "")
-        self.model = model or os.getenv("EVE_MODEL_NAME", "")
+        self.endpoint = endpoint or os.getenv("EVE_MODEL_ENDPOINT", "http://127.0.0.1:11434/v1/chat/completions")
+        self.model = model or os.getenv("EVE_MODEL_NAME", "qwen2.5:3b")
         self.api_key = api_key if api_key is not None else os.getenv("EVE_MODEL_API_KEY", "")
         self.transport = transport or _safe_open
         parsed = urlparse(self.endpoint)
