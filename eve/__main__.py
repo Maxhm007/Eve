@@ -5,6 +5,7 @@ from pathlib import Path
 from .core import Memory, make_proposal
 from .exchange import sign, verify, shared_secret
 from .reasoning import Reasoner
+from .github_bridge import GitHubBridge
 
 
 def main() -> None:
@@ -27,6 +28,10 @@ def main() -> None:
     signed.add_argument("file", type=Path)
     receive = sub.add_parser("receive", help="Verify peer envelope and hold for review")
     receive.add_argument("file", type=Path)
+    gh_send = sub.add_parser("github-send", help="Manually send a signed Eve proposal as a Genesis issue")
+    gh_send.add_argument("file", type=Path)
+    gh_receive = sub.add_parser("github-receive", help="Manually fetch and verify a signed Genesis issue on Eve")
+    gh_receive.add_argument("issue_number", type=int)
     args = parser.parse_args()
     memory = Memory(args.state_dir)
     if args.command == "remember":
@@ -41,6 +46,12 @@ def main() -> None:
         if args.file.stat().st_size > 32768:
             parser.error("Proposal too large")
         output = sign(json.loads(args.file.read_text(encoding="utf-8")), shared_secret())
+    elif args.command == "github-send":
+        if args.file.stat().st_size > 40000:
+            parser.error("Envelope too large")
+        output = GitHubBridge().send(json.loads(args.file.read_text(encoding="utf-8")))
+    elif args.command == "github-receive":
+        output = GitHubBridge().receive(args.issue_number, memory)
     elif args.command == "receive":
         if args.file.stat().st_size > 40000:
             parser.error("Envelope too large")
