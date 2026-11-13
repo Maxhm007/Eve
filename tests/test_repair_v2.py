@@ -25,6 +25,154 @@ repair = module()
 
 
 class RepairTests(unittest.TestCase):
+
+    def test_empty_pytest_suite_does_not_forge_reproduction(self):
+        import importlib.util
+        if importlib.util.find_spec("pytest") is None:
+            self.skipTest("pytest unavailable")
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "tests").mkdir()
+            (root / "requirements.txt").write_text("pytest>=8.0\n")
+            (root / "tests" / "test_skip_all.py").write_text(
+                "import pytest\npytest.skip('no tests', allow_module_level=True)\n")
+            with self.assertRaisesRegex(ValueError, "incomplete or invalid"):
+                repair.run_tracked_tests(root)
+
+    def test_patch_cannot_replace_collection_failure_with_module_skip(self):
+        import importlib.util
+        if importlib.util.find_spec("pytest") is None:
+            self.skipTest("pytest unavailable")
+        patch = ("diff --git a/src/flag.py b/src/flag.py\n"
+                 "--- a/src/flag.py\n+++ b/src/flag.py\n"
+                 "@@ -1,2 +1,2 @@\n def enabled():\n-    return True\n+    return False\n")
+        def checkout(meta, dest):
+            (dest / "src").mkdir(parents=True)
+            (dest / "src" / "__init__.py").write_text("")
+            (dest / "tests").mkdir()
+            (dest / "requirements.txt").write_text("pytest>=8.0\n")
+            (dest / "src" / "flag.py").write_text("def enabled():\n    return True\n")
+            (dest / "tests" / "test_skip.py").write_text(
+                "import pytest\nfrom src.flag import enabled\n"
+                "if not enabled(): pytest.skip('feature disabled', allow_module_level=True)\n"
+                "assert enabled() is False\n"
+                "def test_flag(): assert True\n")
+            (dest / "tests" / "test_other.py").write_text(
+                "def test_other(): assert True\n")
+            subprocess.run(["git", "init", "-q", str(dest)], check=True)
+            subprocess.run(["git", "add", "."], cwd=dest, check=True)
+        meta = {"healer": "genesis", "target": "eve",
+                "repo": repair.REPOS["eve"], "sha": "a"*40}
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(
+                repair, "checkout_target", checkout):
+            with self.assertRaisesRegex(ValueError, "skipped additional test modules"):
+                repair.validate(meta, patch, Path(d)/"verified")
+
+    def test_genesis_pytest_collection_is_tracked(self):
+        import types
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "requirements.txt").write_text("cryptography>=42.0\npytest>=8.0\n")
+            done = "__MUTUAL_HEAL_SUITE_FINISHED__" + "a"*32 + ":"
+            report = '{"discovered":3,"executed":3,"failures":0,"errors":0,"skipped":0,"successful":true}'
+            result = types.SimpleNamespace(returncode=0, stdout=done+report+"\n", stderr="")
+            with mock.patch.object(repair.secrets, "token_hex", return_value="a"*32), \
+                 mock.patch.object(repair, "command", return_value=result) as command:
+                _, stats = repair.run_tracked_tests(root)
+                self.assertTrue(stats["successful"])
+                args = command.call_args.args[0]
+                self.assertIn("pytest.main", args[2])
+                self.assertIn("pytest_runtest_logreport", args[2])
+
+    def test_unittest_repo_keeps_unittest_completion_harness(self):
+        import types
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            done = "__MUTUAL_HEAL_SUITE_FINISHED__" + "b"*32 + ":"
+            report = '{"discovered":1,"executed":1,"failures":0,"errors":0,"skipped":0,"successful":true}'
+            result = types.SimpleNamespace(returncode=0, stdout=done+report+"\n", stderr="")
+            with mock.patch.object(repair.secrets, "token_hex", return_value="b"*32), \
+                 mock.patch.object(repair, "command", return_value=result) as command:
+                repair.run_tracked_tests(root)
+                args = command.call_args.args[0]
+                self.assertIn("unittest.defaultTestLoader", args[2])
+                self.assertNotIn("pytest.main", args[2])
+
+    def test_publisher_rejects_unattested_test_runner(self):
+        meta = {
+            "healer": "genesis", "target": "eve", "repo": repair.REPOS["eve"],
+            "path": "src/calc.py", "new_sha256": hashlib.sha256(b"ok").hexdigest(),
+            "baseline": "failed", "patched": "passed", "tests_completed": True,
+            "tests_executed": 2, "test_command": "python -c 'print(1)'"
+        }
+        with self.assertRaisesRegex(ValueError, "reproduction evidence"):
+            repair.publish(meta, base64.b64encode(b"ok").decode(), "fake-local-token")
+
+    def test_local_prepare_requires_matching_recipient_repository(self):
+        import os
+        import sys
+        with mock.patch.dict(os.environ, {"GITHUB_REPOSITORY": repair.REPOS["genesis"],
+                                          "GITHUB_TOKEN": "local-scoped-token"}, clear=True), \
+             mock.patch.object(sys, "argv", ["repair_v2.py", "--local", "prepare",
+                                             "--identity", "genesis", "--out", "candidate"]), \
+             mock.patch.object(repair, "evidence") as evidence:
+            with self.assertRaisesRegex(ValueError, "current repository"):
+                repair.main()
+            evidence.assert_not_called()
+
+    def test_local_prepare_uses_native_token_on_local_target_only(self):
+        import os
+        import sys
+        import io
+        from contextlib import redirect_stdout
+        with mock.patch.dict(os.environ, {"GITHUB_REPOSITORY": repair.REPOS["eve"],
+                                          "GITHUB_TOKEN": "local-scoped-token"}, clear=True), \
+             mock.patch.object(sys, "argv", ["repair_v2.py", "--local", "prepare",
+                                             "--identity", "genesis", "--out", "candidate"]), \
+             mock.patch.object(repair, "evidence", return_value=None) as evidence, \
+             redirect_stdout(io.StringIO()):
+            repair.main()
+            evidence.assert_called_once_with("genesis", 0, "local-scoped-token")
+
+    def test_local_publisher_rejects_foreign_repository_without_writing(self):
+        import os
+        import sys
+        import json
+        with tempfile.TemporaryDirectory() as d:
+            verified = Path(d)
+            (verified / "attestation.json").write_text(json.dumps({
+                "healer": "eve", "target": "genesis"}))
+            (verified / "patched.b64").write_text("ZGF0YQ==")
+            with mock.patch.dict(os.environ, {"GITHUB_REPOSITORY": repair.REPOS["eve"],
+                                              "GITHUB_TOKEN": "local-scoped-token"}, clear=True), \
+                 mock.patch.object(sys, "argv", ["repair_v2.py", "--local", "publish",
+                                                 "--verified", str(verified)]), \
+                 mock.patch.object(repair, "publish") as publisher:
+                with self.assertRaisesRegex(ValueError, "foreign repository"):
+                    repair.main()
+                publisher.assert_not_called()
+
+    def test_local_publisher_uses_local_token_instead_of_peer_pat(self):
+        import os
+        import sys
+        import json
+        import io
+        from contextlib import redirect_stdout
+        with tempfile.TemporaryDirectory() as d:
+            verified = Path(d)
+            meta = {"healer": "genesis", "target": "eve", "repo": repair.REPOS["eve"]}
+            (verified / "attestation.json").write_text(json.dumps(meta))
+            (verified / "patched.b64").write_text("ZGF0YQ==")
+            with mock.patch.dict(os.environ, {"GITHUB_REPOSITORY": repair.REPOS["eve"],
+                                              "GITHUB_TOKEN": "local-scoped-token",
+                                              "REPAIR_PR_TOKEN": "must-not-use"}, clear=True), \
+                 mock.patch.object(sys, "argv", ["repair_v2.py", "--local", "publish",
+                                                 "--verified", str(verified)]), \
+                 mock.patch.object(repair, "publish", return_value={"status": "review_required"}) as publisher, \
+                 redirect_stdout(io.StringIO()):
+                repair.main()
+                publisher.assert_called_once_with(meta, "ZGF0YQ==", "local-scoped-token")
+
     def test_baseline_failure_then_verified_fix(self):
         patch = ("diff --git a/src/calc.py b/src/calc.py\n"
                  "--- a/src/calc.py\n+++ b/src/calc.py\n"
