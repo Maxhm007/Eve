@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Maxhm007/Eve
-          ref: 10f7f2fc963b5ecf41224bb7fadde5a22c6802d4
+          ref: b68907f93199155b0e02ab7e5491a08c56b14f0c
           path: engine
           persist-credentials: false
       - uses: actions/setup-python@v5
