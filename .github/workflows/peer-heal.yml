@@ -1,0 +1,40 @@
+name: Eve uses Genesis healing engine
+
+# Executes immutable, peer-authored source in the CALLER's repository.
+# No cross-repository token, no peer write access, no source code auto-merge.
+on:
+  schedule:
+    - cron: '15 13 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/peer-heal.yml'
+      - '.github/workflows/self-heal.yml'
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  peer-vetted-healing:
+    if: github.event_name != 'pull_request'
+    uses: Maxhm007/Genesis-AI-Network/.github/workflows/peer-healing-engine.yml@0cf783122cadf1d7627e978e8110ba7a0cb0948a
+    with:
+      identity: eve
+
+  policy-tests:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python -m unittest discover -s tests -p test_mutual_healer.py -v
