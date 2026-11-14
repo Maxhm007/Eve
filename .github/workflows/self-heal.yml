@@ -9,6 +9,7 @@ on:
   # Runs use the trusted default-branch workflow; PR code is never executed with write permissions.
   workflow_run:
     workflows:
+      - 'Eve recovery canary'
       - 'Eve uses Genesis healing engine'
       - 'Eve accepts Genesis-style tested repair proposals'
     types: [completed]
