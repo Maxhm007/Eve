@@ -90,7 +90,7 @@ def tick(token, work=None):
     state = parse_state(genesis["body"], "<!-- continuous-turn-state -->",
                         "<!-- /continuous-turn-state -->")
     if (state.get("version") != 1 or state.get("owner") != "eve"
-            or state.get("status") != "running"
+            or state.get("status") not in ("ready", "running")
             or type(state.get("sequence")) is not int):
         return "no_eve_turn"
     ack_issue = api(EVE, "/issues/{}".format(EVE_LEDGER), token=token)

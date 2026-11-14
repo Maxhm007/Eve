@@ -51,6 +51,25 @@ class TurnTests(TestCase):
         ack = m.parse_state(writes[0][1]["body"], m.START, m.END)
         self.assertEqual((ack["sequence"], ack["status"]), (2, "completed"))
 
+    def test_eve_can_claim_ready_handoff_without_extra_genesis_heartbeat(self):
+        genesis = self.make_body("<!-- continuous-turn-state -->",
+                                 "<!-- /continuous-turn-state -->",
+                                 {"version": 1, "sequence": 2,
+                                  "owner": "eve", "status": "ready"})
+        eve = self.make_body(m.START, m.END,
+                             {"version": 1, "sequence": 0, "status": "initial"})
+        writes = []
+        def fake_api(repo, suffix, method="GET", payload=None, token=""):
+            if method != "GET":
+                writes.append((repo, suffix, payload))
+                return {}
+            return {"body": genesis if repo == m.GENESIS else eve}
+        with mock.patch.object(m, "api", side_effect=fake_api):
+            self.assertEqual(m.tick("eve-local",
+                                    work=lambda: ("completed", "verified")), "completed")
+        self.assertEqual(len(writes), 2)
+        self.assertTrue(all(row[0] == m.EVE for row in writes))
+
     def test_does_not_duplicate_existing_ack(self):
         genesis = self.make_body("<!-- continuous-turn-state -->",
                                  "<!-- /continuous-turn-state -->",
