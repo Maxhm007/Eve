@@ -86,7 +86,9 @@ def default_work(token):
 def tick(token, work=None):
     if not token:
         raise ValueError("Eve's own GITHUB_TOKEN is required")
-    genesis = api(GENESIS, "/issues/{}".format(GENESIS_LEDGER))
+    # Authenticate this public peer read with Eve's repository-scoped token to
+    # avoid the anonymous GitHub REST limit. Mutations remain restricted to Eve.
+    genesis = api(GENESIS, "/issues/{}".format(GENESIS_LEDGER), token=token)
     state = parse_state(genesis["body"], "<!-- continuous-turn-state -->",
                         "<!-- /continuous-turn-state -->")
     if (state.get("version") != 1 or state.get("owner") != "eve"
