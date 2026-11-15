@@ -1,5 +1,8 @@
 # Eve — Independent AI Recovery Partner
 
+**Genesis × Eve continuity:** [Portable project handoff and operating runbook](GENESIS_EVE_HANDOFF.md) — start here in a new Codex, ChatGPT or workstation session. This file is a dated snapshot; always verify the live GitHub ledgers before acting.
+
+
 > **Eve is an independent recovery partner for [Genesis](https://github.com/Maxhm007/Genesis-AI-Network). Eve monitors Genesis's failing workflows, retries transient failures once, and escalates persistent defects with evidence. Genesis performs the same service for Eve.**
 
 **Status:** Mutual healing watchdog and schedule are implemented with unit tests. Live cross-repository recovery requires a target-scoped GitHub token and explicit enablement. Automated code patches and recovery success have not yet been verified.
