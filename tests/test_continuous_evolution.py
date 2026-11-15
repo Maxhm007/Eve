@@ -28,6 +28,7 @@ class TurnTests(TestCase):
         with mock.patch.object(m, "api", return_value={"body": genesis}) as api:
             self.assertEqual(m.tick("eve-local"), "no_eve_turn")
             self.assertEqual(api.call_count, 1)
+            api.assert_called_once_with(m.GENESIS, "/issues/1212", token="eve-local")
 
     def test_eve_runs_one_task_and_records_ack_locally(self):
         genesis = self.make_body("<!-- continuous-turn-state -->",
