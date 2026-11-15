@@ -56,6 +56,15 @@ class EveTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_proposal(p)
 
+    def test_malformed_peer_fields_raise_validation_error(self):
+        for field, value in (("created_at", 123), ("created_at", None),
+                             ("sender", []), ("kind", {})):
+            with self.subTest(field=field, value=value):
+                proposal = make_proposal("genesis", "eve", "test", "task", "result")
+                proposal[field] = value
+                with self.assertRaises(ValueError):
+                    validate_proposal(proposal)
+
 
 if __name__ == "__main__":
     unittest.main()

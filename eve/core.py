@@ -25,16 +25,23 @@ def validate_proposal(proposal: dict, recipient: str = "eve") -> dict:
         raise ValueError("Invalid proposal fields")
     if proposal["protocol"] != PROTOCOL:
         raise ValueError("Unsupported protocol")
+    if (not isinstance(proposal["sender"], str) or
+            not isinstance(proposal["recipient"], str) or
+            not isinstance(proposal["kind"], str)):
+        raise ValueError("Invalid participants or proposal kind")
     if proposal["sender"] not in ALLOWED_SENDERS or proposal["recipient"] != recipient:
         raise ValueError("Invalid participants")
     if proposal["sender"] == proposal["recipient"]:
         raise ValueError("Self-addressed peer proposal")
     if proposal["kind"] not in ALLOWED_KINDS:
         raise ValueError("Invalid proposal kind")
+    created_at = proposal["created_at"]
+    if not isinstance(created_at, str):
+        raise ValueError("Invalid id or timestamp")
     try:
         UUID(proposal["proposal_id"])
-        timestamp = datetime.fromisoformat(proposal["created_at"].replace("Z", "+00:00"))
-        if timestamp.tzinfo is None:
+        timestamp = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        if timestamp.tzinfo is None or timestamp.utcoffset() is None:
             raise ValueError("Timezone required")
     except (TypeError, ValueError) as exc:
         raise ValueError("Invalid id or timestamp") from exc
